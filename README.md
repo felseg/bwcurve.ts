@@ -1,7 +1,8 @@
 # BWCurve.ts
 
-Browser and Node.js compatible TypeScript library to read, write and modify Bitwig Studios .bwcurve format.
-Reading .bwcurve is not yet supported, but will be added as soon as possible.
+NOTE: Until this package gets to 1.0.0 it will not follow SemVer, the API _will_ change suddenly without any warning. Only use this package if you are fine with that.
+
+BWCurve.ts is a Browser and Node.js compatible TypeScript library to read, write and modify Bitwig Studios .bwcurve format. Reading .bwcurve is not yet supported, but will be added as soon as possible.
 
 ## Usage
 

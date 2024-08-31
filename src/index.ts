@@ -11,6 +11,14 @@ const stringToHex = (str: string) => {
         .join('');
 };
 
+const calculateCurveBetweenPoints = (x: number, p1: BWCurvePoint, p2: BWCurvePoint) => {
+    if (Math.abs(p1.slope) < 0.002) {
+        return (p2.y - p1.y) / (p2.x - p1.x);
+    } else {
+        //TODO implement de casteljau
+    }
+};
+
 export type BWCurvePoint = {
     x: number;
     y: number;
@@ -223,7 +231,7 @@ export class BWCurve {
             };
         });
 
-        return this.addPoints(pointsWithOffset);
+        return this.pushPoints(pointsWithOffset);
     }
 
     /**
@@ -231,7 +239,7 @@ export class BWCurve {
      * @param points
      * @returns {BWCurve}
      */
-    public addPoints(...points: (BWCurvePoint | BWCurvePoint[])[]) {
+    public pushPoints(...points: (BWCurvePoint | BWCurvePoint[])[]) {
         points.forEach((point) => {
             if (Array.isArray(point)) {
                 this.points.push(...point);
@@ -261,7 +269,7 @@ export class BWCurve {
         const index = this.points.findIndex((p) => p.x > x);
 
         if (index === -1) {
-            return this.addPoints({ x, y, slope });
+            return this.pushPoints({ x, y, slope });
         }
 
         this.points.splice(index, 0, { x, y, slope });
@@ -343,6 +351,38 @@ export class BWCurve {
             curve = f(curve);
         }
         return curve;
+    }
+
+    /**
+     * clips the curve using the given algorithm
+     * @param algorithm one of 'tanh', 'sin', 'cubic'
+     */
+    public clip(algorithm: 'tanh' | 'sin' | 'cubic') {
+        switch (algorithm) {
+            case 'tanh':
+                return this.map((p) => {
+                    return {
+                        ...p,
+                        y: Math.tanh(5 * p.y),
+                    };
+                });
+            case 'sin':
+                return this.map((p) => {
+                    return {
+                        ...p,
+                        y: Math.abs(p.y) > 2 / 3 ? Math.sign(p.y) : Math.sin((3 * Math.PI * p.y) / 4),
+                    };
+                });
+            case 'cubic':
+                return this.map((p) => {
+                    return {
+                        ...p,
+                        y: Math.abs(p.y) > 2 / 3 ? Math.sign(p.y) : (9 * p.y) / 4 - (27 * p.y ** 3) / 16,
+                    };
+                });
+            default:
+                return this;
+        }
     }
 
     /**
