@@ -109,13 +109,14 @@ export class BWCurve {
 
     /**
      * Clamps the curve to the range of 0.0 to 1.0 for y and -1.0 to 1.0 for slope
+     * Convenience method to ensure that the curve is in the correct range and can be loaded by Bitwig
      * @returns {BWCurve}
      */
     public clamp() {
         return this.map((p) => {
             return {
                 ...p,
-                y: Math.max(0.0, Math.min(1.0, p.y * 0.5 + 0.5)),
+                y: Math.max(0.0, Math.min(1.0, p.y)),
                 slope: Math.max(-1, Math.min(1, p.slope)),
             };
         });
@@ -134,7 +135,7 @@ export class BWCurve {
 
     /**
      * Scales the y values of the curve by the given factor
-     * @param factor The factor to scale the curve by
+     * @param factor
      * @returns {BWCurve}
      */
     public scaleY(factor: number) {
@@ -149,7 +150,7 @@ export class BWCurve {
 
     /**
      * Scales the x values of the curve by the given factor
-     * @param factor The factor to scale the curve by
+     * @param factor
      * @returns {BWCurve}
      */
     public scaleX(factor: number) {
@@ -164,8 +165,8 @@ export class BWCurve {
 
     /**
      * fits the curve into the given x range, so that the curve starts at min and ends at max
-     * @param min The minimum x value
-     * @param max The maximum x value
+     * @param min
+     * @param max
      * @returns {BWCurve}
      */
     public fitInXRange(min: number, max: number) {
@@ -183,8 +184,8 @@ export class BWCurve {
 
     /**
      * fits the curve into the given y range, so that the curve starts at min and ends at max
-     * @param min The minimum y value
-     * @param max The maximum y value
+     * @param min
+     * @param max
      * @returns {BWCurve}
      */
     public fitInYRange(min: number, max: number) {
@@ -202,7 +203,7 @@ export class BWCurve {
 
     /**
      * Convenience method to concatenate two Curves
-     * @param curve The curve to splice into this curve
+     * @param curve
      * @returns {BWCurve}
      */
     public spliceCurve(curve: BWCurve) {
@@ -227,7 +228,7 @@ export class BWCurve {
 
     /**
      * Adds the given points to the curve
-     * @param points The points to add
+     * @param points
      * @returns {BWCurve}
      */
     public addPoints(...points: (BWCurvePoint | BWCurvePoint[])[]) {
@@ -237,6 +238,139 @@ export class BWCurve {
             } else {
                 this.points.push(point);
             }
+        });
+        return this;
+    }
+
+    public shiftX(offset: number) {
+        this.points = this.points.map((p) => {
+            return {
+                ...p,
+                x: p.x + offset,
+            };
+        });
+        return this;
+    }
+
+    /**
+     * Inserts a point at the given x position
+     * @param {BWCurvePoint} point
+     * @returns {BWCurve}
+     */
+    public insertPointAtX({ x, y, slope }: BWCurvePoint) {
+        const index = this.points.findIndex((p) => p.x > x);
+
+        if (index === -1) {
+            return this.addPoints({ x, y, slope });
+        }
+
+        this.points.splice(index, 0, { x, y, slope });
+        return this;
+    }
+
+    /**
+     * Sorts the points of the curve by x. Should not be necessary, but can be useful
+     * @returns {BWCurve}
+     */
+    public sort() {
+        this.points.sort((a, b) => a.x - b.x);
+        return this;
+    }
+
+    /**
+     * Reverses the curve
+     * @returns {BWCurve}
+     */
+    public reverse() {
+        const maxX = this.getMaxX();
+        this.points = this.points.reverse().map((p) => {
+            return {
+                ...p,
+                x: maxX - p.x,
+            };
+        });
+        return this;
+    }
+
+    /**
+     * Inverts the curve
+     * @returns {BWCurve}
+     */
+    public invert() {
+        const maxY = this.getMaxY();
+        for (let i = 0; i < this.points.length; i++) {
+            this.points[i].y = maxY - this.points[i].y;
+        }
+        return this;
+    }
+
+    /**
+     * Scales the curve by 0.5 and splices it with itself
+     * @returns {BWCurve}
+     */
+    public double() {
+        if (this.points.length <= 1) {
+            return this;
+        }
+        const maxX = this.getMaxX();
+        this.scaleX(0.5 * maxX);
+        return this.spliceCurve(this);
+    }
+
+    /**
+     * Scales the curve by 0.5 and splices it with its mirror
+     * @returns {BWCurve}
+     */
+    public mirror() {
+        if (this.points.length <= 1) {
+            return this;
+        }
+        const maxX = this.getMaxX();
+        this.scaleX(0.5);
+        const clone = this.clone().reverse();
+        return this.spliceCurve(clone);
+    }
+
+    /**
+     * Applies the given function n times
+     * @param n
+     * @param f (curve: BWCurve) => BWCurve
+     * @returns {BWCurve}
+     */
+    public repeat(n: number, f: (curve: BWCurve) => BWCurve) {
+        let curve: BWCurve = this;
+        for (let i = 0; i < n; i++) {
+            curve = f(curve);
+        }
+        return curve;
+    }
+
+    /**
+     * Normalizes the curve in the y direction
+     * @returns {BWCurve}
+     */
+    public normalizeY() {
+        const maxY = this.getMaxY();
+        this.points = this.points.map((p) => {
+            return {
+                ...p,
+                y: p.y / maxY,
+            };
+        });
+        return this;
+    }
+
+    /**
+     * Normalizes the curve in the x direction
+     * @returns {BWCurve}
+     */
+    public normalizeX() {
+        const maxX = this.getMaxX();
+        this.points = this.points.map((p) => {
+            return {
+                ...p,
+                x: p.x / maxX,
+            };
         });
         return this;
     }
@@ -259,7 +393,7 @@ export class BWCurve {
 
     /**
      * Removes a point at a given index
-     * @param index The index of the point to remove
+     * @param index
      * @returns {BWCurve}
      */
     public removePoint(index: number) {
@@ -277,7 +411,7 @@ export class BWCurve {
 
     /**
      * Sets the category of the curve
-     * @param category The category to set
+     * @param category
      * @returns {BWCurve}
      */
     public setCategory(category: BWCurveCategories) {
@@ -295,7 +429,7 @@ export class BWCurve {
 
     /**
      * Sets the creator of the curve
-     * @param creator The creator to set
+     * @param creator must be at most 256 characters long
      * @returns {BWCurve}
      */
     setCreator(creator: string) {
@@ -305,7 +439,7 @@ export class BWCurve {
 
     /**
      * Gets the name of the curve
-     * @returns {string} The name of the curve
+     * @returns {string} must be at most 256 characters long
      */
     get name() {
         return this.metadata.name;
@@ -313,7 +447,7 @@ export class BWCurve {
 
     /**
      * Sets the name of the curve
-     * @param name name to set, must be at most 256 characters long
+     * @param name must be at most 256 characters long
      * @returns {BWCurve}
      */
     setName(name: string) {
@@ -331,7 +465,7 @@ export class BWCurve {
 
     /**
      * Sets the tags of the curve
-     * @param tags tags to set
+     * @param tags
      * @returns {BWCurve}
      */
     public setTags(tags: string[]) {
@@ -341,7 +475,7 @@ export class BWCurve {
 
     /**
      * Adds a tag to the curve
-     * @param tag The tag to add
+     * @param tag
      * @returns {BWCurve}
      */
     public addTag(tag: string) {
@@ -351,7 +485,7 @@ export class BWCurve {
 
     /**
      * Removes a tag from the curve
-     * @param tag The tag to remove
+     * @param tag
      * @returns {BWCurve}
      */
     public removeTag(tag: string) {
@@ -370,12 +504,19 @@ export class BWCurve {
 
     /**
      * Sets the description of the curve
-     * @param description The description to set
+     * @param description
      * @returns {BWCurve}
      */
     public setDescription(description: string) {
         this.metadata.description = description;
         return this;
+    }
+
+    public clone(): BWCurve {
+        const curve = new BWCurve();
+        curve.metadata = structuredClone(this.metadata);
+        curve.points = structuredClone(this.points);
+        return curve;
     }
 
     public static fromBuffer(buffer: Uint8Array) {
@@ -401,20 +542,15 @@ export class BWCurve {
         let points: Uint8Array[] = this.points.map(({ x, y, slope }) => {
             let structure = new Uint8Array([
                 ...fromHexString('00 12 7E 00 00 35 FD 07'),
-                // 8
                 // fill with big endian double y
                 ...new Uint8Array(8),
-                // 16
                 ...fromHexString('00 00 35 FE 07'),
-                // 21
                 // fill with big endian double x
                 ...new Uint8Array(8),
-                // 29
                 ...fromHexString('00 00 35 FF 07'),
-                // 34
                 // fill with big endian double slope
                 ...new Uint8Array(8),
-                // 42
+
                 ...fromHexString('00 00 00 00 00'),
             ]);
 
