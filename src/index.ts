@@ -51,10 +51,14 @@ export class BWCurve {
 
     public setPoints<T>(
         points: T[],
-        converter: (x: T) => Pick<Partial<BWCurvePoint>, 'slope'> & Pick<BWCurvePoint, 'x' | 'y'>
+        converter: (
+            x: T,
+            idx?: number,
+            array?: T[]
+        ) => Pick<Partial<BWCurvePoint>, 'slope'> & Pick<BWCurvePoint, 'x' | 'y'>
     ) {
-        this.points = points.map((p) => {
-            const { x, y, slope } = converter(p);
+        this.points = points.map((p, idx, array) => {
+            const { x, y, slope } = converter(p, idx, array);
             return {
                 x,
                 y,
@@ -127,6 +131,33 @@ export class BWCurve {
     public writeBuffer() {
         const spacer = fromHexString('00 00 00');
 
+        let points: Uint8Array[] = this.points.map(({ x, y, slope }) => {
+            let structure = new Uint8Array([
+                ...fromHexString('00 12 7E 00 00 35 FD 07'),
+                // 8
+                // fill with big endian double y
+                ...new Uint8Array(8),
+                // 16
+                ...fromHexString('00 00 35 FE 07'),
+                // 21
+                // fill with big endian double x
+                ...new Uint8Array(8),
+                // 29
+                ...fromHexString('00 00 35 FF 07'),
+                // 34
+                // fill with big endian double slope
+                ...new Uint8Array(8),
+                // 42
+                ...fromHexString('00 00 00 00 00'),
+            ]);
+
+            const dataView = new DataView(structure.buffer);
+            dataView.setFloat64(8, y, false);
+            dataView.setFloat64(21, x, false);
+            dataView.setFloat64(34, slope, false);
+            return structure;
+        });
+
         return Uint8Array.from([
             /// header
             ...fromHexString(
@@ -183,6 +214,46 @@ export class BWCurve {
             ...fromHexString('01'),
             ...spacer,
             ...fromHexString('0A'),
+            // curve_kind
+            ...fromHexString('63 75 72 76 65 5F 6B 69 6E 64 01 02'),
+            ...spacer,
+            ...fromHexString('01'),
+            ...spacer,
+            // revision_id
+            ...fromHexString('0B 72 65 76 69 73 69 6F 6E 5F 69 64 08'),
+            ...spacer,
+            // long string of numbers
+            ...fromHexString(
+                '28 31 64 39 35 34 37 37 33 36 65 34 32 35 37 64 36 61 61 37 64 33 34 66 39 66 64 64 39 62 38 63 34 66 39 39 38 34 61 36 30'
+            ),
+            ...spacer,
+            ...fromHexString('01'),
+            ...spacer,
+            // revision_no
+            ...fromHexString('0B 72 65 76 69 73 69 6F 6E 5F 6E 6F 03 00 02 45 A0'),
+            ...spacer,
+            ...fromHexString('01'),
+            ...spacer,
+            // tags
+            ...fromHexString('04 74 61 67 73 08'),
+            ...spacer,
+            ...fromHexString(this.tags.length === 0 ? '00' : '15' + this.tags.map((t) => stringToHex(t)).join('20')),
+            ...spacer,
+            ...fromHexString('01'),
+            ...spacer,
+            // type (MIME)
+            ...fromHexString('04 74 79 70 65 08'),
+            ...spacer,
+            // application/bitwig-curve
+            ...fromHexString('18 61 70 70 6C 69 63 61 74 69 6F 6E 2F 62 69 74 77 69 67 2D 63 75 72 76 65 00'),
+            ...spacer,
+            ...fromHexString('00'),
+            ...fromHexString('20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 0A'),
+            ...fromHexString('00'),
+            // points list declaration and deserilization information
+            ...fromHexString(
+                '00 12 7F 00 00 36 2D 01 02 00 00 36 46 05 01 00 00 36 01 01 20 00 00 36 02 01 01 00 00 36 35 01 00 00 00 36 03 12 00'
+            ),
         ]);
     }
 }

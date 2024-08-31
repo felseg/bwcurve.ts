@@ -11,9 +11,6 @@
     "name": "bwcurve.ts",
     "version": "0.1.0",
     "description": "Environment independent library to create and read .bwcurve files.",
-    "dependencies": {
-        "undici-types": "^6.19.8"
-    },
     "author": "Felix S",
     "license": "MIT"
 }
