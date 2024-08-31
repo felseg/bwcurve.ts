@@ -1,5 +1,3 @@
-import { writeFileSync } from 'fs';
-
 // utils
 const fromHexString = (hexString: string) => {
     const noSpaces = hexString.replace(/\s/g, '');
