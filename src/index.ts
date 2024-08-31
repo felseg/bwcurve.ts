@@ -1,3 +1,5 @@
+import { writeFileSync } from 'fs';
+
 // utils
 const fromHexString = (hexString: string) => {
     const noSpaces = hexString.replace(/\s/g, '');
@@ -22,6 +24,7 @@ type BWCurveCategories = 'Envelope' | 'Lookup' | 'Periodic' | 'Sequence';
 type BWCurveMetadata = {
     creator: string;
     description: string;
+    name: string;
     tags: string[];
     category: BWCurveCategories;
 };
@@ -30,7 +33,7 @@ type InternalData = {
     length: number;
 };
 
-export class BWCurve {
+class BWCurve {
     private internal: InternalData;
     private metadata: BWCurveMetadata;
     private points: BWCurvePoint[];
@@ -41,10 +44,11 @@ export class BWCurve {
             length: 1.0,
         };
         this.metadata = {
-            creator: 'Anonymous',
+            name: 'default',
+            creator: 'default',
             category: 'Envelope',
-            description: ' ',
-            tags: [],
+            description: 'default',
+            tags: ['default'],
         };
         return this;
     }
@@ -79,8 +83,22 @@ export class BWCurve {
         return this;
     }
 
-    get author() {
+    get creator() {
         return this.metadata.creator;
+    }
+
+    setCreator(creator: string) {
+        this.metadata.creator = creator;
+        return this;
+    }
+
+    get name() {
+        return this.metadata.name;
+    }
+
+    setName(name: string) {
+        this.metadata.name = name;
+        return this;
     }
 
     get tags() {
@@ -100,10 +118,6 @@ export class BWCurve {
     public removeTag(tag: string) {
         this.metadata.tags = this.metadata.tags.filter((t) => t !== tag);
         return this;
-    }
-
-    set author(author: string) {
-        this.metadata.creator = author;
     }
 
     get pointCount() {
@@ -130,6 +144,7 @@ export class BWCurve {
 
     public writeBuffer() {
         const spacer = fromHexString('00 00 00');
+        const stop = fromHexString('00');
 
         let points: Uint8Array[] = this.points.map(({ x, y, slope }) => {
             let structure = new Uint8Array([
@@ -158,10 +173,20 @@ export class BWCurve {
             return structure;
         });
 
+        let pointsLength = 0;
+        points.forEach((p) => (pointsLength += p.length));
+
+        const mergedPoints = new Uint8Array(pointsLength);
+        let offset = 0;
+        points.forEach((p) => {
+            mergedPoints.set(p, offset);
+            offset += p.length;
+        });
+
         return Uint8Array.from([
             /// header
             ...fromHexString(
-                '42 74 57 67 30 30 30 33 30 30 30 32 30 30 30 30 30 30 30 30 31 35 35 65 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30'
+                '42 74 57 67 30 30 30 33 30 30 30 32 30 30 30 30 30 30 30 30 31 35 30 65 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30'
             ),
             ...spacer,
             ...fromHexString('04'),
@@ -197,7 +222,7 @@ export class BWCurve {
             ...fromHexString('01'),
             ...spacer,
             // creator
-            ...fromHexString('04 74 61 67 73'),
+            ...fromHexString('07 63 72 65 61 74 6F 72 08'),
             ...spacer,
             ...fromHexString('09'),
             ...fromHexString(stringToHex(this.metadata.creator)),
@@ -245,7 +270,7 @@ export class BWCurve {
             ...fromHexString('04 74 79 70 65 08'),
             ...spacer,
             // application/bitwig-curve
-            ...fromHexString('18 61 70 70 6C 69 63 61 74 69 6F 6E 2F 62 69 74 77 69 67 2D 63 75 72 76 65 00'),
+            ...fromHexString('18 61 70 70 6C 69 63 61 74 69 6F 6E 2F 62 69 74 77 69 67 2D 63 75 72 76 65'),
             ...spacer,
             ...fromHexString('00'),
             ...fromHexString('20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 0A'),
@@ -254,6 +279,52 @@ export class BWCurve {
             ...fromHexString(
                 '00 12 7F 00 00 36 2D 01 02 00 00 36 46 05 01 00 00 36 01 01 20 00 00 36 02 01 01 00 00 36 35 01 00 00 00 36 03 12 00'
             ),
+            ...mergedPoints,
+            // points list end
+            ...fromHexString('00 00 03 00 00 37 88 01 FF 00 00 36 65 01 FF 00 00 36 66 01 FF 00'),
+            // creator
+            ...fromHexString('00 36 22 08'),
+            ...spacer,
+            // curve name
+            ...fromHexString('09'),
+            ...fromHexString(stringToHex(this.metadata.name)),
+            ...stop,
+            ...fromHexString('00 36 21 08'),
+            ...spacer,
+            // creator
+            ...fromHexString('09'),
+            ...fromHexString(stringToHex(this.metadata.creator)),
+            ...stop,
+            ...fromHexString('00 36 21 08'),
+            ...spacer,
+            ...fromHexString('55'),
+            ...fromHexString(stringToHex(this.metadata.description)),
+            ...stop,
+            ...fromHexString('00 36 22 08'),
+            ...spacer,
+            ...fromHexString('06'),
+            ...fromHexString(stringToHex(this.metadata.category)),
+            ...stop,
+            ...fromHexString('00 36 A6 08'),
+            ...spacer,
+            ...fromHexString(this.tags.length === 0 ? '00' : '15' + this.tags.map((t) => stringToHex(t)).join('20')),
+            ...stop,
+            ...spacer,
         ]);
     }
 }
+
+const curve = new BWCurve()
+    .setPoints(
+        [
+            { x: 0, y: 0, slope: 0 },
+            { x: 0.5, y: 0.5, slope: 0 },
+            { x: 1.0, y: 1.0, slope: 0 },
+        ],
+        (p) => p
+    )
+    .writeBuffer();
+
+writeFileSync('curve.bwcurve', curve);
+
+export default BWCurve;
