@@ -216,7 +216,7 @@ class BWCurve {
             ...fromHexString('07 63 6F 6D 6D 65 6E 74'),
             ...fromHexString('08'),
             ...spacer,
-            ...fromHexString('U'),
+            ...fromHexString(this.metadata.description.length.toString(16)),
             ...fromHexString(stringToHex(this.metadata.description)),
             ...spacer,
             ...fromHexString('01'),
@@ -224,7 +224,7 @@ class BWCurve {
             // creator
             ...fromHexString('07 63 72 65 61 74 6F 72 08'),
             ...spacer,
-            ...fromHexString('09'),
+            ...fromHexString(this.metadata.creator.length.toString(16)),
             ...fromHexString(stringToHex(this.metadata.creator)),
             ...spacer,
             ...fromHexString('01'),
@@ -233,7 +233,7 @@ class BWCurve {
             // curve category
             ...fromHexString('63 75 72 76 65 5F 63 61 74 65 67 6F 72 79 08'),
             ...spacer,
-            ...fromHexString('06'),
+            ...fromHexString(this.metadata.category.length.toString(16)),
             ...fromHexString(stringToHex(this.metadata.category)),
             ...spacer,
             ...fromHexString('01'),
@@ -262,7 +262,15 @@ class BWCurve {
             // tags
             ...fromHexString('04 74 61 67 73 08'),
             ...spacer,
-            ...fromHexString(this.tags.length === 0 ? '00' : '15' + this.tags.map((t) => stringToHex(t)).join('20')),
+            ...fromHexString(
+                this.tags.length === 0
+                    ? '00'
+                    : this.tags
+                          //stop byte, count only as one character
+                          .join('0')
+                          .length.toString(16)
+            ),
+            ...fromHexString(this.tags.map((t) => stringToHex(t)).join('20')),
             ...spacer,
             ...fromHexString('01'),
             ...spacer,
@@ -283,31 +291,39 @@ class BWCurve {
             // points list end
             ...fromHexString('00 00 03 00 00 37 88 01 FF 00 00 36 65 01 FF 00 00 36 66 01 FF 00'),
             // creator
-            ...fromHexString('00 36 22 08'),
+            ...fromHexString('00 36 0B 08'),
             ...spacer,
             // curve name
-            ...fromHexString('09'),
+            ...fromHexString(this.metadata.name.length.toString(16)),
             ...fromHexString(stringToHex(this.metadata.name)),
             ...stop,
             ...fromHexString('00 36 21 08'),
             ...spacer,
             // creator
-            ...fromHexString('09'),
+            ...fromHexString(this.metadata.creator.length.toString(16)),
             ...fromHexString(stringToHex(this.metadata.creator)),
             ...stop,
-            ...fromHexString('00 36 21 08'),
+            ...fromHexString('00 36 23 08'),
             ...spacer,
-            ...fromHexString('55'),
+            ...fromHexString(this.metadata.description.length.toString(16)),
             ...fromHexString(stringToHex(this.metadata.description)),
             ...stop,
             ...fromHexString('00 36 22 08'),
             ...spacer,
-            ...fromHexString('06'),
+            ...fromHexString(this.metadata.category.length.toString(16)),
             ...fromHexString(stringToHex(this.metadata.category)),
             ...stop,
             ...fromHexString('00 36 A6 08'),
             ...spacer,
-            ...fromHexString(this.tags.length === 0 ? '00' : '15' + this.tags.map((t) => stringToHex(t)).join('20')),
+            ...fromHexString(
+                this.tags.length === 0
+                    ? '00'
+                    : this.tags
+                          //stop byte, count only as one character
+                          .join('0')
+                          .length.toString(16)
+            ),
+            ...fromHexString(this.tags.map((t) => stringToHex(t)).join('20')),
             ...stop,
             ...spacer,
         ]);
@@ -318,7 +334,8 @@ const curve = new BWCurve()
     .setPoints(
         [
             { x: 0, y: 0, slope: 0 },
-            { x: 0.5, y: 0.5, slope: 0 },
+            { x: 0.5, y: 0.8, slope: 0 },
+            { x: 0.9, y: 0.0, slope: 0 },
             { x: 1.0, y: 1.0, slope: 0 },
         ],
         (p) => p
