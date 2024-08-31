@@ -11,13 +11,13 @@ const stringToHex = (str: string) => {
         .join('');
 };
 
-type BWCurvePoint = {
+export type BWCurvePoint = {
     x: number;
     y: number;
     slope: number;
 };
 
-type BWCurveCategories = 'Envelope' | 'Lookup' | 'Periodic' | 'Sequence';
+export type BWCurveCategories = 'Envelope' | 'Lookup' | 'Periodic' | 'Sequence';
 
 type BWCurveMetadata = {
     creator: string;
@@ -31,7 +31,7 @@ type InternalData = {
     length: number;
 };
 
-class BWCurve {
+export class BWCurve {
     private internal: InternalData;
     private metadata: BWCurveMetadata;
     private points: BWCurvePoint[];
@@ -327,5 +327,3 @@ class BWCurve {
         ]);
     }
 }
-
-export default BWCurve;
