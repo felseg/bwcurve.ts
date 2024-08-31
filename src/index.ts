@@ -512,6 +512,10 @@ export class BWCurve {
         return this;
     }
 
+    /**
+     * Clones the curve
+     * @returns {BWCurve}
+     */
     public clone(): BWCurve {
         const curve = new BWCurve();
         curve.metadata = structuredClone(this.metadata);
