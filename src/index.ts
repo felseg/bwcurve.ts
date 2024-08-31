@@ -346,36 +346,6 @@ export class BWCurve {
     }
 
     /**
-     * Normalizes the curve in the y direction
-     * @returns {BWCurve}
-     */
-    public normalizeY() {
-        const maxY = this.getMaxY();
-        this.points = this.points.map((p) => {
-            return {
-                ...p,
-                y: p.y / maxY,
-            };
-        });
-        return this;
-    }
-
-    /**
-     * Normalizes the curve in the x direction
-     * @returns {BWCurve}
-     */
-    public normalizeX() {
-        const maxX = this.getMaxX();
-        this.points = this.points.map((p) => {
-            return {
-                ...p,
-                x: p.x / maxX,
-            };
-        });
-        return this;
-    }
-
-    /**
      * Gets the number of points in the curve
      * @returns {number}
      */
