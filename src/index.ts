@@ -36,6 +36,11 @@ export class BWCurve {
     private metadata: BWCurveMetadata;
     private points: BWCurvePoint[];
 
+    /**
+     * Creates a new BWCurve
+     *
+     * @returns {BWCurve} The new curve with default values
+     */
     constructor() {
         this.points = [];
         this.internal = {
@@ -51,12 +56,18 @@ export class BWCurve {
         return this;
     }
 
+    /**
+     * sets all points to the given points, after applying the converter function
+     * @param points The points to set
+     * @param converter The converter function to apply to each point
+     * @returns {BWCurve}
+     */
     public setPoints<T>(
         points: T[],
         converter: (
             x: T,
-            idx?: number,
-            array?: T[]
+            idx: number,
+            array: T[]
         ) => Pick<Partial<BWCurvePoint>, 'slope'> & Pick<BWCurvePoint, 'x' | 'y'>
     ) {
         this.points = points.map((p, idx, array) => {
@@ -70,77 +81,320 @@ export class BWCurve {
         return this;
     }
 
-    public spliceCurve(curve: BWCurve) {}
-
-    get category() {
-        return this.metadata.category;
+    private getMaxX() {
+        return Math.max(...this.points.map((p) => p.x));
     }
 
-    public setCategory(category: BWCurveCategories) {
-        this.metadata.category = category;
+    private getMaxY() {
+        return Math.max(...this.points.map((p) => p.y));
+    }
+
+    private getMinX() {
+        return Math.min(...this.points.map((p) => p.x));
+    }
+
+    private getMinY() {
+        return Math.min(...this.points.map((p) => p.y));
+    }
+
+    /**
+     * Maps over the points of the curve and applies the callback
+     * @param callback The callback to apply to each point
+     * @returns {BWCurve}
+     */
+    public map(callback: (point: BWCurvePoint, index: number, array: BWCurvePoint[]) => BWCurvePoint) {
+        this.points = this.points.map(callback);
         return this;
     }
 
-    get creator() {
-        return this.metadata.creator;
+    /**
+     * Clamps the curve to the range of 0.0 to 1.0 for y and -1.0 to 1.0 for slope
+     * @returns {BWCurve}
+     */
+    public clamp() {
+        return this.map((p) => {
+            return {
+                ...p,
+                y: Math.max(0.0, Math.min(1.0, p.y * 0.5 + 0.5)),
+                slope: Math.max(-1, Math.min(1, p.slope)),
+            };
+        });
     }
 
-    setCreator(creator: string) {
-        this.metadata.creator = creator;
+    /**
+     * Filters the points of the curve based on the callback
+     * @param callback The callback to filter the points
+     * @returns {BWCurve}
+     *
+     */
+    public filter(callback: (point: BWCurvePoint, index: number, array: BWCurvePoint[]) => boolean) {
+        this.points = this.points.filter(callback);
         return this;
     }
 
-    get name() {
-        return this.metadata.name;
-    }
-
-    setName(name: string) {
-        this.metadata.name = name;
+    /**
+     * Scales the y values of the curve by the given factor
+     * @param factor The factor to scale the curve by
+     * @returns {BWCurve}
+     */
+    public scaleY(factor: number) {
+        this.points = this.points.map((p) => {
+            return {
+                ...p,
+                y: p.y * factor,
+            };
+        });
         return this;
     }
 
-    get tags() {
-        return this.metadata.tags;
-    }
-
-    public setTags(tags: string[]) {
-        this.metadata.tags = tags;
+    /**
+     * Scales the x values of the curve by the given factor
+     * @param factor The factor to scale the curve by
+     * @returns {BWCurve}
+     */
+    public scaleX(factor: number) {
+        this.points = this.points.map((p) => {
+            return {
+                ...p,
+                x: p.x * factor,
+            };
+        });
         return this;
     }
 
-    public addTag(tag: string) {
-        this.metadata.tags.push(tag);
+    /**
+     * fits the curve into the given x range, so that the curve starts at min and ends at max
+     * @param min The minimum x value
+     * @param max The maximum x value
+     * @returns {BWCurve}
+     */
+    public fitInXRange(min: number, max: number) {
+        const minX = this.getMinX();
+        this.points = this.points.map((p) => {
+            return {
+                ...p,
+                x: p.x - minX,
+            };
+        });
+        const maxX = this.getMaxX();
+        const factor = (max - min) / maxX;
+        return this.scaleX(factor);
+    }
+
+    /**
+     * fits the curve into the given y range, so that the curve starts at min and ends at max
+     * @param min The minimum y value
+     * @param max The maximum y value
+     * @returns {BWCurve}
+     */
+    public fitInYRange(min: number, max: number) {
+        const minY = this.getMinY();
+        this.points = this.points.map((p) => {
+            return {
+                ...p,
+                y: p.y - minY,
+            };
+        });
+        const maxY = this.getMaxY();
+        const factor = (max - min) / maxY;
+        return this.scaleY(factor);
+    }
+
+    /**
+     * Convenience method to concatenate two Curves
+     * @param curve The curve to splice into this curve
+     * @returns {BWCurve}
+     */
+    public spliceCurve(curve: BWCurve) {
+        if (curve.points.length === 0) {
+            return this;
+        }
+        if (this.points.length === 0) {
+            this.points = curve.points;
+            return this;
+        }
+        const maxX = this.getMaxX();
+
+        const pointsWithOffset = curve.points.map((p) => {
+            return {
+                ...p,
+                x: p.x + maxX,
+            };
+        });
+
+        return this.addPoints(pointsWithOffset);
+    }
+
+    /**
+     * Adds the given points to the curve
+     * @param points The points to add
+     * @returns {BWCurve}
+     */
+    public addPoints(...points: (BWCurvePoint | BWCurvePoint[])[]) {
+        points.forEach((point) => {
+            if (Array.isArray(point)) {
+                this.points.push(...point);
+            } else {
+                this.points.push(point);
+            }
+        });
         return this;
     }
 
-    public removeTag(tag: string) {
-        this.metadata.tags = this.metadata.tags.filter((t) => t !== tag);
-        return this;
-    }
-
+    /**
+     * Gets the number of points in the curve
+     * @returns {number}
+     */
     get pointCount() {
         return this.points.length;
     }
 
+    /**
+     * Gets a point at a given index
+     * @returns {BWCurvePoint}
+     */
     get(index: number) {
         return this.points[index];
     }
 
-    public addPoint(point: BWCurvePoint) {
-        this.points.push(point);
-        return this;
-    }
-
+    /**
+     * Removes a point at a given index
+     * @param index The index of the point to remove
+     * @returns {BWCurve}
+     */
     public removePoint(index: number) {
         this.points.splice(index, 1);
         return this;
     }
 
-    public static readBuffer(buffer: Uint8Array) {
-        return new BWCurve();
+    /**
+     * Gets the category of the curve
+     * @returns {BWCurveCategories}
+     */
+    get category() {
+        return this.metadata.category;
     }
 
-    public writeBuffer() {
+    /**
+     * Sets the category of the curve
+     * @param category The category to set
+     * @returns {BWCurve}
+     */
+    public setCategory(category: BWCurveCategories) {
+        this.metadata.category = category;
+        return this;
+    }
+
+    /**
+     * Gets the creator of the curve
+     * @returns {string}
+     */
+    get creator() {
+        return this.metadata.creator;
+    }
+
+    /**
+     * Sets the creator of the curve
+     * @param creator The creator to set
+     * @returns {BWCurve}
+     */
+    setCreator(creator: string) {
+        this.metadata.creator = creator;
+        return this;
+    }
+
+    /**
+     * Gets the name of the curve
+     * @returns {string} The name of the curve
+     */
+    get name() {
+        return this.metadata.name;
+    }
+
+    /**
+     * Sets the name of the curve
+     * @param name name to set, must be at most 256 characters long
+     * @returns {BWCurve}
+     */
+    setName(name: string) {
+        this.metadata.name = name;
+        return this;
+    }
+
+    /**
+     * Gets the tags of the curve
+     * @returns {string[]}
+     */
+    get tags() {
+        return this.metadata.tags;
+    }
+
+    /**
+     * Sets the tags of the curve
+     * @param tags tags to set
+     * @returns {BWCurve}
+     */
+    public setTags(tags: string[]) {
+        this.metadata.tags = tags;
+        return this;
+    }
+
+    /**
+     * Adds a tag to the curve
+     * @param tag The tag to add
+     * @returns {BWCurve}
+     */
+    public addTag(tag: string) {
+        this.metadata.tags.push(tag);
+        return this;
+    }
+
+    /**
+     * Removes a tag from the curve
+     * @param tag The tag to remove
+     * @returns {BWCurve}
+     */
+    public removeTag(tag: string) {
+        this.metadata.tags = this.metadata.tags.filter((t) => t !== tag);
+        return this;
+    }
+
+    /**
+     * Gets the description of the curve
+     * @returns {string}
+     *
+     */
+    public get description() {
+        return this.metadata.description;
+    }
+
+    /**
+     * Sets the description of the curve
+     * @param description The description to set
+     * @returns {BWCurve}
+     */
+    public setDescription(description: string) {
+        this.metadata.description = description;
+        return this;
+    }
+
+    public static fromBuffer(buffer: Uint8Array) {
+        throw new Error('Not implemented (yet)');
+        // return new BWCurve();
+    }
+
+    /**
+     * Converts the curve to a buffer
+     * @returns {Uint8Array} The buffer representation of the
+     * curve
+     * @example
+     * const curve = new BWCurve();
+     * const buffer = curve.toBuffer();
+     * console.log(buffer);
+     * // Uint8Array(....)
+     * // 42 74 57 67 30 30 30 33 30 30 30 32 30 30 30 30 30 30 30 30 31 35 30 65
+     */
+    public toBuffer() {
         const spacer = fromHexString('00 00 00');
         const stop = fromHexString('00');
 
