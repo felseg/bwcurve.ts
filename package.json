@@ -1,6 +1,5 @@
 {
     "devDependencies": {
-        "@types/node": "^22.5.1",
         "typescript": "^5.5.4"
     },
     "main": "dist/index.js",
@@ -13,5 +12,17 @@
     "version": "0.1.0",
     "description": "Environment independent library to create and read .bwcurve files.",
     "author": "Felix S",
-    "license": "MIT"
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/felseg/bwcurve.ts.git"
+    },
+    "keywords": [
+        "Bitwig Studio",
+        "bwcurve"
+    ],
+    "bugs": {
+        "url": "https://github.com/felseg/bwcurve.ts/issues"
+    },
+    "homepage": "https://github.com/felseg/bwcurve.ts#readme"
 }
