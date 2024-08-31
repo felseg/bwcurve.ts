@@ -330,18 +330,4 @@ class BWCurve {
     }
 }
 
-const curve = new BWCurve()
-    .setPoints(
-        [
-            { x: 0, y: 0, slope: 0 },
-            { x: 0.5, y: 0.8, slope: 0 },
-            { x: 0.9, y: 0.0, slope: 0 },
-            { x: 1.0, y: 1.0, slope: 0 },
-        ],
-        (p) => p
-    )
-    .writeBuffer();
-
-writeFileSync('curve.bwcurve', curve);
-
 export default BWCurve;
