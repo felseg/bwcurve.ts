@@ -11,12 +11,18 @@ const stringToHex = (str: string) => {
         .join('');
 };
 
-const calculateCurveBetweenPoints = (x: number, p1: BWCurvePoint, p2: BWCurvePoint) => {
-    if (Math.abs(p1.slope) < 0.002) {
-        return (p2.y - p1.y) / (p2.x - p1.x);
-    } else {
-        //TODO implement de casteljau
-    }
+const interpolate = (t: number, interpolationSlope: number, p1: BWCurvePoint, p2: BWCurvePoint) => {
+    const tScaled = 0.5 * interpolationSlope + 0.5;
+    const mid = {
+        x: (1 - tScaled) * p1.x + tScaled * p2.x,
+        y: (1 - tScaled) * p1.y + tScaled * p2.y,
+    };
+    const x = (1 - t) ** 2 * p1.x + 2 * (1 - t) * t * mid.x + t ** 2 * p2.x;
+    const y = (1 - t) ** 2 * p1.y + 2 * (1 - t) * t * mid.y + t ** 2 * p2.y;
+    return {
+        x,
+        y,
+    };
 };
 
 export type BWCurvePoint = {
@@ -59,7 +65,7 @@ export class BWCurve {
             creator: 'default',
             category: 'Envelope',
             description: 'default',
-            tags: ['default'],
+            tags: [],
         };
         return this;
     }
@@ -87,6 +93,10 @@ export class BWCurve {
             };
         });
         return this;
+    }
+
+    public setBWPoints(points: BWCurvePoint[]) {
+        return this.setPoints(points, (p) => p);
     }
 
     private getMaxX() {
@@ -351,6 +361,56 @@ export class BWCurve {
             curve = f(curve);
         }
         return curve;
+    }
+
+    /**
+     * Skews the curve according to a quadratic Bezier curve
+     * @param slope between -1 and 1
+     */
+    public skewX(slope: number) {
+        const start = {
+            x: 0,
+            y: 0,
+            slope: 0,
+        };
+        const end = {
+            x: 1,
+            y: 1,
+            slope: 0,
+        };
+        this.points = this.points.map((p) => {
+            const { x } = interpolate(p.x, slope, start, end);
+            return {
+                ...p,
+                x,
+            };
+        });
+        return this;
+    }
+
+    /**
+     * Skews the curve according to a quadratic Bezier curve
+     * @param slope between -1 and 1
+     */
+    public skewY(slope: number) {
+        const start = {
+            x: 0,
+            y: 0,
+            slope: 0,
+        };
+        const end = {
+            x: 1,
+            y: 1,
+            slope: 0,
+        };
+        this.points = this.points.map((p) => {
+            const { y } = interpolate(p.y, slope, start, end);
+            return {
+                ...p,
+                y,
+            };
+        });
+        return this;
     }
 
     /**
