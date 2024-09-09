@@ -125,6 +125,11 @@ export class BWCurve {
         return this;
     }
 
+    /**
+     * Runs the callback once for each point of the curve
+     * @param callback The callback to apply to each point
+     * @returns {BWCurve}
+     */
     public forEach(callback: (point: BWCurvePoint, index: number, array: BWCurvePoint[]) => void) {
         this.points.forEach(callback);
         return this;
