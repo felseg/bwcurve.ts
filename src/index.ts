@@ -125,6 +125,11 @@ export class BWCurve {
         return this;
     }
 
+    public forEach(callback: (point: BWCurvePoint, index: number, array: BWCurvePoint[]) => void) {
+        this.points.forEach(callback);
+        return this;
+    }
+
     /**
      * Clamps the curve to the range of 0.0 to 1.0 for y and -1.0 to 1.0 for slope
      * Convenience method to ensure that the curve is in the correct range and can be loaded by Bitwig
