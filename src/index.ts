@@ -100,19 +100,55 @@ export class BWCurve {
     }
 
     private getMaxX() {
-        return Math.max(...this.points.map((p) => p.x));
+        if (this.points.length === 0) {
+            return 0;
+        }
+        let max = this.points[0].x;
+        for (const point of this.points) {
+            if (point.x > max) {
+                max = point.x;
+            }
+        }
+        return max;    
     }
 
     private getMaxY() {
-        return Math.max(...this.points.map((p) => p.y));
+        if (this.points.length === 0) {
+            return 0;
+        }
+        let max = this.points[0].y;
+        for (const point of this.points) {
+            if (point.y > max) {
+                max = point.y;
+            }
+        }
+        return max;
     }
 
     private getMinX() {
-        return Math.min(...this.points.map((p) => p.x));
+        if (this.points.length === 0) {
+            return 0;
+        }
+        let min = this.points[0].x;
+        for (const point of this.points) {
+            if (point.x < min) {
+                min = point.x;
+            }
+        }
+        return min;
     }
 
     private getMinY() {
-        return Math.min(...this.points.map((p) => p.y));
+        if (this.points.length === 0) {
+            return 0;
+        }
+        let min = this.points[0].y;
+        for (const point of this.points) {
+            if (point.y < min) {
+                min = point.y;
+            }
+        }
+        return min;
     }
 
     /**
@@ -353,7 +389,6 @@ export class BWCurve {
         if (this.points.length <= 1) {
             return this;
         }
-        const maxX = this.getMaxX();
         this.scaleX(0.5);
         const clone = this.clone().reverse();
         return this.spliceCurve(clone);
@@ -513,6 +548,9 @@ export class BWCurve {
      * @returns {BWCurve}
      */
     setCreator(creator: string) {
+        if(creator.length > 256) {
+            throw new Error('Creator must be at most 256 characters long');
+        }
         this.metadata.creator = creator;
         return this;
     }
@@ -531,6 +569,9 @@ export class BWCurve {
      * @returns {BWCurve}
      */
     setName(name: string) {
+        if (name.length > 256) {
+            throw new Error('Name must be at most 256 characters long');
+        }
         this.metadata.name = name;
         return this;
     }
@@ -549,6 +590,16 @@ export class BWCurve {
      * @returns {BWCurve}
      */
     public setTags(tags: string[]) {
+        if (tags.length > 10) {
+            throw new Error('A curve can have at most 10 tags');
+        }
+        if (
+            tags.some((tag) => {
+                return tag.length > 40;
+            })
+        ) {
+            throw new Error('A tag must be at most 40 characters long');
+        }
         this.metadata.tags = tags;
         return this;
     }
@@ -559,6 +610,9 @@ export class BWCurve {
      * @returns {BWCurve}
      */
     public addTag(tag: string) {
+        if (tag.length > 40) {
+            throw new Error('Tag must be at most 40 characters long');
+        }
         this.metadata.tags.push(tag);
         return this;
     }
@@ -588,6 +642,9 @@ export class BWCurve {
      * @returns {BWCurve}
      */
     public setDescription(description: string) {
+        if (description.length > 256) {
+            throw new Error('Description must be at most 256 characters long');
+        }
         this.metadata.description = description;
         return this;
     }
@@ -603,7 +660,7 @@ export class BWCurve {
         return curve;
     }
 
-    public static fromBuffer(buffer: Uint8Array) {
+    public static fromUint8Array(buffer: Uint8Array) {
         throw new Error('Not implemented (yet)');
         // return new BWCurve();
     }
@@ -619,7 +676,7 @@ export class BWCurve {
      * // Uint8Array(....)
      * // 42 74 57 67 30 30 30 33 30 30 30 32 30 30 30 30 30 30 30 30 31 35 30 65
      */
-    public toBuffer() {
+    public toUint8Array() {
         const spacer = fromHexString('00 00 00');
         const stop = fromHexString('00');
 
